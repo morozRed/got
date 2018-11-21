@@ -6,6 +6,8 @@ const normalizeArguments = require('./normalize-arguments');
 const merge = require('./merge');
 const deepFreeze = require('./utils/deep-freeze');
 
+const dnsCache = require('./dns-cache');
+
 const getPromiseOrStream = options => options.stream ? asStream(options) : asPromise(options);
 
 const aliases = [
@@ -29,7 +31,8 @@ const create = defaults => {
 
 	function got(url, options) {
 		try {
-			return defaults.handler(normalizeArguments(url, options, defaults), getPromiseOrStream);
+			let normalizedOptions = normalizeArguments(url, options, defaults);
+			return defaults.handler(normalizedOptions, getPromiseOrStream);
 		} catch (error) {
 			if (options && options.stream) {
 				throw error;
@@ -55,6 +58,8 @@ const create = defaults => {
 			mutableDefaults
 		});
 	};
+
+	got.dnscache = dnsCache(defaults.options.dnsCache);
 
 	got.mergeInstances = (...args) => create(merge.instances(args));
 
