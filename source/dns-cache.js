@@ -18,28 +18,25 @@ module.exports = options => {
 		capacity: this.capacity
 	});
 
-	this.lookup = (hostname, options, cb) => {
+	this.lookup = (hostname, options, callback) => {
 		let key,
 			cacheRecord,
 			_resolver;
 
 		options = options || {}
-		options.all = true
 		options.ttl = true
 
 		key = hostname + '_' + (options.family || 4);
 		cacheRecord = this.storage.get(key);
 		if (cacheRecord && cacheRecord.ttl >= Date.now()) {
-			cb(null, cacheRecord.address, cacheRecord.family);
-			return;
+			return callback(null, cacheRecord.address, cacheRecord.family);
 		}
 
 		if (cacheRecord) {
 			this.storage.update(key, {
 				ttl: Date.now() + cacheRecord.ttl
 			});
-			cb(null, cacheRecord.address, cacheRecord.family);
-			return;
+			return callback(null, cacheRecord.address, cacheRecord.family);
 		}
 
 		/**
@@ -64,27 +61,19 @@ module.exports = options => {
 		 * supports ttl and not blocking thread
 		 */
 		_resolver(hostname, {ttl: true}, (err, results) => {
-			if (err) return cb(_modifyDnsError(err))
+			if (err) return callback(err)
 
 			const records = results.map(result => {
 				return {
 					address: result.address,
-					ttl: Date.now() + result.ttl + 100000,
+					ttl: Date.now() + result.ttl,
 					family: options.family
 				}
 			})
 			this.storage.set(key, records);
 			let record = this.storage.get(key);
-			cb(null, record.address, record.family)
+			callback(null, record.address, record.family)
 		})
-	}
-
-	/**
-	 * Temporary error modifier
-	 */
-	_modifyDnsError = (err, hostname) => {
-		err.message = `getaddrinfo ${dns.NOTFOUND} : ${hostname}`
-		return err;
 	}
 
 	return this;

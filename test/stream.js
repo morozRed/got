@@ -88,7 +88,7 @@ test('have error event', async t => {
 
 test('have error event #2', async t => {
 	const stream = got.stream('.com', {retry: 0});
-	await t.throwsAsync(pEvent(stream, 'response'), /getaddrinfo ENOTFOUND/);
+	await t.throwsAsync(pEvent(stream, 'response'), /EBADNAME .com/);
 });
 
 test('have response event on throwHttpErrors === false', async t => {
