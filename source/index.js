@@ -4,7 +4,7 @@ const create = require('./create');
 
 const defaults = {
 	options: {
-	dnsCache: {},
+		dnsCache: {},
 		retry: {
 			retries: 2,
 			methods: [

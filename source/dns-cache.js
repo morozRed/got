@@ -1,33 +1,31 @@
 /**
- * Update later to independent 
+ * Update later to independent
  * native promisified resolver
  */
 
- /**
+/**
   * Lookup can be used in @method {http.request} call!
   *	just pass it as a @param {lookup}
   */
-const dns = require("dns");
-const BaseCacheStorage = require("./base-cache-storage");
+const dns = require('dns');
+const baseCacheStorage = require('./base-cache-storage');
 
 module.exports = options => {
 	this.ttl = options.ttl;
 	this.capacity = options.capacity;
 
-	this.storage = options.storageInstance || BaseCacheStorage({
+	this.storage = options.storageInstance || baseCacheStorage({
 		capacity: this.capacity
 	});
 
 	this.lookup = (hostname, options, callback) => {
-		let key,
-			cacheRecord,
-			_resolver;
+		let _resolver;
 
-		options = options || {}
-		options.ttl = true
+		options = options || {};
+		options.ttl = true;
 
-		key = hostname + '_' + (options.family || 4);
-		cacheRecord = this.storage.get(key);
+		const key = hostname + '_' + (options.family || 4);
+		const cacheRecord = this.storage.get(key);
 		if (cacheRecord && cacheRecord.ttl >= Date.now()) {
 			return callback(null, cacheRecord.address, cacheRecord.family);
 		}
@@ -41,19 +39,19 @@ module.exports = options => {
 
 		/**
 		 * TODO: change address family parser
-		 * 		 use resolverAll in case of 
+		 * 		 use resolverAll in case of
 		 * 		 undefined family
 		 */
 		switch (options.family) {
 			case '4':
-				_resolver = dns.resolve4
+				_resolver = dns.resolve4;
 				break;
 			case '6':
-				_resolver = dns.resolve6
+				_resolver = dns.resolve6;
 				break;
 			default:
 				options.family = 4;
-				_resolver = dns.resolve4
+				_resolver = dns.resolve4;
 				break;
 		}
 		/**
@@ -61,20 +59,22 @@ module.exports = options => {
 		 * supports ttl and not blocking thread
 		 */
 		_resolver(hostname, {ttl: true}, (err, results) => {
-			if (err) return callback(err)
+			if (err) {
+				return callback(err);
+			}
 
 			const records = results.map(result => {
 				return {
 					address: result.address,
 					ttl: Date.now() + result.ttl,
 					family: options.family
-				}
-			})
+				};
+			});
 			this.storage.set(key, records);
-			let record = this.storage.get(key);
-			callback(null, record.address, record.family)
-		})
-	}
+			const record = this.storage.get(key);
+			callback(null, record.address, record.family);
+		});
+	};
 
 	return this;
-}
+};

@@ -8,9 +8,9 @@ module.exports = options => {
 	this.records = new Map();
 
 	this.get = key => {
-		let addresses = this.records.get(key);
+		const addresses = this.records.get(key);
 		if (addresses) {
-			address = rr(addresses)
+			const address = rr(addresses);
 			return address();
 		}
 		return null;
