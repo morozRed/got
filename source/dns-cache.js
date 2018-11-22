@@ -1,79 +1,91 @@
+/**
+ * Update later to independent 
+ * native promisified resolver
+ */
+
+ /**
+  * Lookup can be used in @method {http.request} call!
+  *	just pass it as a @param {lookup}
+  */
 const dns = require("dns");
 const BaseCacheStorage = require("./base-cache-storage");
 
 module.exports = options => {
-	this.ttl = options.ttl || 10000;
-	this.capacity = options.capacity || 1000;
+	this.ttl = options.ttl;
+	this.capacity = options.capacity;
 
 	this.storage = options.storageInstance || BaseCacheStorage({
-		capacity: this.size
+		capacity: this.capacity
 	});
 
-	/**
-	 * Prepare dns.lookup for extension
-	 */
-	dns._lookup = dns.lookup;
+	this.lookup = (hostname, options, cb) => {
+		let key,
+			cacheRecord,
+			_resolver;
 
-	dns.lookup = (hostname, options, callback) => {
-		let key = hostname,
-			cacheRecord;
+		options = options || {}
+		options.all = true
+		options.ttl = true
 
-		let family = 0,
-			hints = 0,
-			all = false;
-
-		if (arguments.length === 2) {
-			callback = options;
-			options = family;
-		} else if (typeof options === 'object') {
-			if (options.family) {
-				family = +options.family;
-				if (family !== 4 && family !== 6) {
-					callback(new Error('invalid argument: `family` must be 4 or 6'));
-					return;
-				}
-			}
-			if (options.hints) {
-				hints = +options.hints;
-			}
-			all = (options.all === true);
-			key = key + (options.family || '-') + (options.hints || '-') + (options.all || '-');
-		} else if (options) {
-			family = +options;
-			if (family !== 4 && family !== 6) {
-				callback(new Error('invalid argument: `family` must be 4 or 6'));
-				return;
-			}
-			key = key + options;
-		}
-
+		key = hostname + '_' + (options.family || 4);
 		cacheRecord = this.storage.get(key);
-
 		if (cacheRecord && cacheRecord.ttl >= Date.now()) {
-			return process.nextTick(function () {
-				return callback(null, cacheRecord.address, cacheRecord.family);
-			});
-		} else {
-			if (cacheRecord) {
-				this.storage.update(key, {
-					ttl: Date.now() + cacheTtl
-				});
-				return process.nextTick(function () {
-					return callback(null, cacheRecord.address, cacheRecord.family);
-				});
-			}
-			dns._lookup(hostname, options, (err, address, family) => {
-				if (!err) {
-					this.storage.set(key, {
-						address: address,
-						family: family,
-						ttl: (Date.now() + this.ttl)
-					})
-				}
-				return callback(null, address, family);
-			});
-
+			cb(null, cacheRecord.address, cacheRecord.family);
+			return;
 		}
-	};
+
+		if (cacheRecord) {
+			this.storage.update(key, {
+				ttl: Date.now() + cacheRecord.ttl
+			});
+			cb(null, cacheRecord.address, cacheRecord.family);
+			return;
+		}
+
+		/**
+		 * TODO: change address family parser
+		 * 		 use resolverAll in case of 
+		 * 		 undefined family
+		 */
+		switch (options.family) {
+			case '4':
+				_resolver = dns.resolve4
+				break;
+			case '6':
+				_resolver = dns.resolve6
+				break;
+			default:
+				options.family = 4;
+				_resolver = dns.resolve4
+				break;
+		}
+		/**
+		 * Use resolve instead of lookup because it
+		 * supports ttl and not blocking thread
+		 */
+		_resolver(hostname, {ttl: true}, (err, results) => {
+			if (err) return cb(_modifyDnsError(err))
+
+			const records = results.map(result => {
+				return {
+					address: result.address,
+					ttl: Date.now() + result.ttl + 100000,
+					family: options.family
+				}
+			})
+			this.storage.set(key, records);
+			let record = this.storage.get(key);
+			cb(null, record.address, record.family)
+		})
+	}
+
+	/**
+	 * Temporary error modifier
+	 */
+	_modifyDnsError = (err, hostname) => {
+		err.message = `getaddrinfo ${dns.NOTFOUND} : ${hostname}`
+		return err;
+	}
+
 	return this;
 }

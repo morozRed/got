@@ -1,25 +1,32 @@
 /**
- * TODO: deal with expired ttl`s and capacity   
+ * TODO: deal with expired ttl`s and capacity
  */
+const rr = require('./utils/rr');
+
 module.exports = options => {
-    this.capacity = options.capacity || 1000;
-    this.storage = {};
+	this.capacity = options.capacity;
+	this.storage = new Map();
 
-    this.get = function(key) {
-        return this.storage[key];
-    }
+	this.get = key => {
+		let addresses = this.storage.get(key);
+		if (addresses) {
+			address = rr(addresses)
+			return address();
+		}
+		return null;
+	};
 
-    this.getAll = function() {
-        return Object.values(this.storage);
-    }
+	this.getAll = () => {
+		return Object.values(this.storage);
+	};
 
-    this.set = function(key, record) {
-        this.storage[key] = record;
-    }
+	this.set = (key, record) => {
+		this.storage.set(key, record);
+	};
 
-    this.update = function(key, params) {
-        return Object.assign(this.storage[key], params);
-    }
+	this.update = (key, params) => {
+		this.storage.set(key, Object.assign(this.storage.get(key), params));
+	};
 
-    return this;
-}
+	return this;
+};

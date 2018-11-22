@@ -285,7 +285,6 @@ module.exports = (options, input) => {
 			}
 
 			requestUrl = options.href || (new URL(options.path, urlLib.format(options))).toString();
-
 			await get(options);
 		} catch (error) {
 			emitter.emit('error', error);
