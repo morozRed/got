@@ -5,7 +5,7 @@ const asPromise = require('./as-promise');
 const normalizeArguments = require('./normalize-arguments');
 const merge = require('./merge');
 const deepFreeze = require('./utils/deep-freeze');
-const dnsCache = require('./dns-cache')({});
+const dnsCache = require('./dns-cache');
 
 const getPromiseOrStream = options => options.stream ? asStream(options) : asPromise(options);
 
@@ -32,7 +32,9 @@ const create = defaults => {
 		try {
 			const normalizedOptions = normalizeArguments(url, options, defaults);
 			if (!normalizedOptions.lookup) {
-				normalizedOptions.lookup = dnsCache.lookup;
+				normalizedOptions.lookup = normalizedOptions.dnsCache
+					? dnsCache(normalizedOptions.dnsCache).lookup
+					: dnsCache({}).lookup
 			}
 			return defaults.handler(normalizedOptions, getPromiseOrStream);
 		} catch (error) {

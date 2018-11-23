@@ -13,7 +13,7 @@ module.exports = options => {
 			const address = rr(addresses);
 			return address();
 		}
-		return null;
+		return;
 	};
 
 	this.set = (key, record) => {

@@ -1,14 +1,9 @@
-/**
- * Update later to independent
- * native promisified resolver
- */
-
-/**
-  * Lookup can be used in @method {http.request} call!
-  *	just pass it as a @param {lookup}
-  */
 const dns = require('dns');
+const net = require('net');
 const baseCacheStorage = require('./base-cache-storage');
+
+const IPv4 = 4;
+const IPv6 = 6;
 
 module.exports = options => {
 	this.ttl = options.ttl;
@@ -21,10 +16,15 @@ module.exports = options => {
 	this.lookup = (hostname, options, callback) => {
 		let _resolver;
 
-		options = options || {};
-		options.ttl = true;
+		const matchedFamily = net.isIP(hostname);
 
-		const key = hostname + '_' + (options.family || 4);
+		if (matchedFamily) {
+			return callback(null, hostname, matchedFamily);
+		}
+		
+		options = options || {};
+
+		const key = hostname + '_' + (options.family || IPv4);
 		const cacheRecord = this.storage.get(key);
 		if (cacheRecord && cacheRecord.ttl >= Date.now()) {
 			return callback(null, cacheRecord.address, cacheRecord.family);
@@ -43,14 +43,14 @@ module.exports = options => {
 		 * 		 undefined family
 		 */
 		switch (options.family) {
-			case '4':
+			case IPv4:
 				_resolver = dns.resolve4;
 				break;
-			case '6':
+			case IPv6:
 				_resolver = dns.resolve6;
 				break;
 			default:
-				options.family = 4;
+				options.family = IPv4;
 				_resolver = dns.resolve4;
 				break;
 		}
@@ -59,14 +59,11 @@ module.exports = options => {
 		 * supports ttl and not blocking thread
 		 */
 		_resolver(hostname, {ttl: true}, (err, results) => {
-			if (err) {
-				return callback(err);
-			}
-
+			if (err) return callback(err);
 			const records = results.map(result => {
 				return {
 					address: result.address,
-					ttl: Date.now() + result.ttl,
+					ttl: Date.now() + (this.ttl || result.ttl),
 					family: options.family
 				};
 			});
