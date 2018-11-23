@@ -18,10 +18,12 @@ module.exports = options => {
 
 	this.set = (key, record) => {
 		this.records.set(key, record);
+		return;
 	};
 
 	this.update = (key, params) => {
 		this.records.set(key, Object.assign(this.records.get(key), params));
+		return;
 	};
 
 	return this;

@@ -26,6 +26,7 @@ module.exports = options => {
 
 		const key = hostname + '_' + (options.family || IPv4);
 		const cacheRecord = this.storage.get(key);
+
 		if (cacheRecord && cacheRecord.ttl >= Date.now()) {
 			return callback(null, cacheRecord.address, cacheRecord.family);
 		}
@@ -63,13 +64,12 @@ module.exports = options => {
 			const records = results.map(result => {
 				return {
 					address: result.address,
-					ttl: Date.now() + (this.ttl || result.ttl),
+					ttl: Date.now() + (result.ttl * 1000),
 					family: options.family
 				};
 			});
 			this.storage.set(key, records);
-			const record = this.storage.get(key);
-			callback(null, record.address, record.family);
+			return callback(null, records[0].address, records[0].family);
 		});
 	};
 
