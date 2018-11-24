@@ -34,9 +34,9 @@ const create = defaults => {
 			const normalizedOptions = normalizeArguments(url, options, defaults);
 			let dnsCacheStorage;
 			if (normalizedOptions.dnsCache) {
-				dnsCacheStorage = normalizedOptions.dnsCache.storage
-					? normalizedOptions.dnsCache.storage
-					: baseCacheStorage;
+				dnsCacheStorage = normalizedOptions.dnsCache.storage ?
+					normalizedOptions.dnsCache.storage :
+					baseCacheStorage;
 			} else {
 				dnsCacheStorage = baseCacheStorage;
 			}

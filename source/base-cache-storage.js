@@ -3,11 +3,13 @@
  */
 
 module.exports = () => {
-	_records = new Map();
+	const _records = new Map();
 
-	this.get = async key => {
-		const addresses = _records.get(key);
-		return addresses || null;
+	this.get = key => {
+		return new Promise(resolve => {
+			const addresses = _records.get(key);
+			resolve(addresses || null);
+		});
 	};
 
 	this.set = (key, record) => {
