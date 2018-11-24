@@ -1,5 +1,6 @@
 import test from 'ava';
 import dnsCache from '../source/dns-cache';
+import baseCacheStorage from '../source/base-cache-storage';
 import got from '../source';
 import { hostname } from 'os';
 
@@ -15,13 +16,15 @@ const ADDRESSES = {
 const defaultOptions = { family: 4 };
 
 let dnsCacheInstance;
+let cacheStorageInstance;
 
 test.before('setup', async () => {
-    dnsCacheInstance = dnsCache({});
+    cacheStorageInstance = baseCacheStorage();
+    dnsCacheInstance = dnsCache({storage: cacheStorageInstance});
 });
 
 test.afterEach('clean dns cache', async () => {
-    dnsCacheInstance.storage.records.clear();
+    cacheStorageInstance.clear();
 })
 
 test.cb('resolves address to ip', t => {
@@ -61,20 +64,17 @@ test.cb('returns error in case of invalid address', t => {
 });
 
 test.cb('saves record to cache storage', t => {
-    let cachedRecordsCount = dnsCacheInstance.storage.records.size;
-    dnsCacheInstance.lookup(ADDRESSES.EXAMPLE, defaultOptions, (err, address, family) => {
-        t.is(dnsCacheInstance.storage.records.size, cachedRecordsCount + 1);
-        t.not(dnsCacheInstance.storage.get(`${ADDRESSES.EXAMPLE}_${defaultOptions.family}`), null)
+    t.plan(1);
+    dnsCacheInstance.lookup(ADDRESSES.EXAMPLE, defaultOptions, async (err, address, family) => {
+        let record = await cacheStorageInstance.get(`${ADDRESSES.EXAMPLE}_${defaultOptions.family}`);
+        t.not(record, null)
         t.end();
     });
 });
 
 test('saves record to cache storage after got request', async t => {
     await got(ADDRESSES.EXAMPLE, {lookup: dnsCacheInstance.lookup});
-    let cachedRecordsCount = dnsCacheInstance.storage.records.size;
-    t.true(cachedRecordsCount > 0);
     dnsCacheInstance.lookup(ADDRESSES.EXAMPLE, defaultOptions, (err, address, family) => {
-        t.is(dnsCacheInstance.storage.records.size, cachedRecordsCount);
-        t.not(dnsCacheInstance.storage.get(`${ADDRESSES.EXAMPLE}_${defaultOptions.family}`), null)
+        t.not(cacheStorageInstance.get(`${ADDRESSES.EXAMPLE}_${defaultOptions.family}`), null)
     });
 });

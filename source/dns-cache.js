@@ -1,17 +1,14 @@
 const dns = require('dns');
 const net = require('net');
-const baseCacheStorage = require('./base-cache-storage');
+const rr = require('./utils/rr');
 
 const IPv4 = 4;
 const IPv6 = 6;
 
 module.exports = options => {
 	this.ttl = options.ttl;
-	this.capacity = options.capacity;
 
-	this.storage = options.storageInstance || baseCacheStorage({
-		capacity: this.capacity
-	});
+	_storage = options.storage;
 
 	this.lookup = (hostname, options, callback) => {
 		let _resolver;
@@ -25,52 +22,46 @@ module.exports = options => {
 		options = options || {};
 
 		const key = hostname + '_' + (options.family || IPv4);
-		const cacheRecord = this.storage.get(key);
 
-		if (cacheRecord && cacheRecord.ttl >= Date.now()) {
-			return callback(null, cacheRecord.address, cacheRecord.family);
-		}
+		_storage.get(key)
+		.then((cachedRecords) => {
+			cachedRecord = cachedRecords 
+				? rr(cachedRecords)() 
+				: null;
 
-		if (cacheRecord) {
-			this.storage.update(key, {
-				ttl: Date.now() + cacheRecord.ttl
+			if (cachedRecord && cachedRecord.ttl >= Date.now()) {
+				return callback(null, cachedRecord.address, cachedRecord.family);
+			}
+
+			/**
+			 * in default case resolve both
+			 */
+			switch (options.family) {
+				case IPv4:
+					_resolver = dns.resolve4;
+					break;
+				case IPv6:
+					_resolver = dns.resolve6;
+					break;
+				default:
+					options.family = IPv4;
+					_resolver = dns.resolve4;
+					break;
+			}
+	
+			_resolver(hostname, {ttl: true}, (err, results) => {
+				if (err) return callback(err);
+				const records = results.map(result => {
+					return {
+						address: result.address,
+						ttl: Date.now() + (result.ttl * 1000),
+						family: options.family
+					};
+				});
+				_storage.set(key, records);
+				return callback(null, records[0].address, records[0].family);
 			});
-			return callback(null, cacheRecord.address, cacheRecord.family);
-		}
-
-		/**
-		 * TODO: change address family parser
-		 * 		 use resolverAll in case of
-		 * 		 undefined family
-		 */
-		switch (options.family) {
-			case IPv4:
-				_resolver = dns.resolve4;
-				break;
-			case IPv6:
-				_resolver = dns.resolve6;
-				break;
-			default:
-				options.family = IPv4;
-				_resolver = dns.resolve4;
-				break;
-		}
-		/**
-		 * Use resolve instead of lookup because it
-		 * supports ttl and not blocking thread
-		 */
-		_resolver(hostname, {ttl: true}, (err, results) => {
-			if (err) return callback(err);
-			const records = results.map(result => {
-				return {
-					address: result.address,
-					ttl: Date.now() + (result.ttl * 1000),
-					family: options.family
-				};
-			});
-			this.storage.set(key, records);
-			return callback(null, records[0].address, records[0].family);
-		});
+		})
 	};
 
 	return this;
