@@ -1,3 +1,4 @@
+import net from 'net';
 import test from 'ava';
 import dnsCache from '../source/dns-cache';
 import baseCacheStorage from '../source/base-cache-storage';
@@ -12,7 +13,8 @@ const ADDRESSES = {
 	INVALID: '.com'
 };
 
-const defaultOptions = {family: 4};
+const IPv4FAMILY = 4;
+const IPv6FAMILY = 6;
 
 let dnsCacheInstance;
 let cacheStorageInstance;
@@ -26,18 +28,29 @@ test.afterEach('clean dns cache', () => {
 	cacheStorageInstance.clear();
 });
 
-test.cb('resolves address to ip', t => {
-	t.plan(2);
-	dnsCacheInstance.lookup(ADDRESSES.GITHUB, defaultOptions, (err, address, family) => {
-		t.true(address.length > 0);
-		t.true(family === 4);
+test.cb('resolves address to ipv4', t => {
+	t.plan(3);
+	dnsCacheInstance.lookup(ADDRESSES.GOOGLE, {family: IPv4FAMILY}, (err, address, family) => {
+        t.true(address.length > 0);
+        t.true(net.isIPv4(address));
+		t.true(family === IPv4FAMILY);
+		t.end();
+	});
+});
+
+test.cb('resolves address to ipv6', t => {
+	t.plan(3);
+	dnsCacheInstance.lookup(ADDRESSES.GOOGLE, {family: IPv6FAMILY}, (err, address, family) => {
+        t.true(address.length > 0);
+        t.true(net.isIPv6(address));
+		t.true(family === IPv6FAMILY);
 		t.end();
 	});
 });
 
 test.cb('resolves ipv4 wihtout lookup', t => {
 	t.plan(2);
-	dnsCacheInstance.lookup(ADDRESSES.PLAINIPv4, defaultOptions, (err, address, family) => {
+	dnsCacheInstance.lookup(ADDRESSES.PLAINIPv4, {family: IPv4FAMILY}, (err, address, family) => {
 		t.true(address === ADDRESSES.PLAINIPv4);
 		t.true(family === 4);
 		t.end();
@@ -46,7 +59,7 @@ test.cb('resolves ipv4 wihtout lookup', t => {
 
 test.cb('resolves ipv6 wihtout lookup', t => {
 	t.plan(2);
-	dnsCacheInstance.lookup(ADDRESSES.PLAINIPv6, defaultOptions, (err, address, family) => {
+	dnsCacheInstance.lookup(ADDRESSES.PLAINIPv6, {family: IPv6FAMILY}, (err, address, family) => {
 		t.true(address === ADDRESSES.PLAINIPv6);
 		t.true(family === 6);
 		t.end();
@@ -55,7 +68,7 @@ test.cb('resolves ipv6 wihtout lookup', t => {
 
 test.cb('returns error in case of invalid address', t => {
 	t.plan(2);
-	dnsCacheInstance.lookup(ADDRESSES.INVALID, defaultOptions, err => {
+	dnsCacheInstance.lookup(ADDRESSES.INVALID, {family: IPv4FAMILY}, err => {
 		t.not(err, null);
 		t.regex(err.message, new RegExp(`EBADNAME ${ADDRESSES.INVALID}`));
 		t.end();
@@ -64,8 +77,8 @@ test.cb('returns error in case of invalid address', t => {
 
 test.cb('saves record to cache storage', t => {
 	t.plan(1);
-	dnsCacheInstance.lookup(ADDRESSES.EXAMPLE, defaultOptions, async () => {
-		const record = await cacheStorageInstance.get(`${ADDRESSES.EXAMPLE}_${defaultOptions.family}`);
+	dnsCacheInstance.lookup(ADDRESSES.EXAMPLE, {family: IPv4FAMILY}, async () => {
+		const record = await cacheStorageInstance.get(`${ADDRESSES.EXAMPLE}_${{family: IPv4FAMILY}.family}`);
 		t.not(record, null);
 		t.end();
 	});
@@ -73,7 +86,5 @@ test.cb('saves record to cache storage', t => {
 
 test('saves record to cache storage after got request', async t => {
 	await got(ADDRESSES.EXAMPLE, {lookup: dnsCacheInstance.lookup});
-	dnsCacheInstance.lookup(ADDRESSES.EXAMPLE, defaultOptions, () => {
-		t.not(cacheStorageInstance.get(`${ADDRESSES.EXAMPLE}_${defaultOptions.family}`), null);
-	});
+	t.not(cacheStorageInstance.get(`${ADDRESSES.EXAMPLE}_${{family: IPv4FAMILY}.family}`), null);
 });

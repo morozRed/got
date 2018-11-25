@@ -34,8 +34,8 @@ module.exports = options => {
 				}
 
 				/**
-			 * In default case resolve both
-			 */
+				* In default case resolve both
+				*/
 				switch (options.family) {
 					case IPv4:
 						_resolver = dns.resolve4;
@@ -51,6 +51,9 @@ module.exports = options => {
 				_resolver(hostname, {ttl: true}, (err, results) => {
 					if (err) {
 						return callback(err);
+					}
+					if (results.length === 0) {
+						return callback(null);
 					}
 					const records = results.map(result => {
 						return {
