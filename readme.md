@@ -27,6 +27,7 @@ Got is for Node.js. For browsers, we recommend [Ky](https://github.com/sindresor
 - [Promise & stream API](#api)
 - [Request cancelation](#aborting-the-request)
 - [RFC compliant caching](#cache-adapters)
+- [DNS caching](#dns-cache-adapters)
 - [Follows redirects](#followredirect)
 - [Retries on failure](#retry)
 - [Progress events](#onuploadprogress-progress)
@@ -302,6 +303,15 @@ Type: `Object`<br>
 Default: `false`
 
 [Cache adapter instance](#cache-adapters) for storing cached data.
+
+###### DNS cache
+
+Type: `Object`<br>
+Default: `false`
+
+**Note:** `options.lookup` will be overridden.
+
+[DNS cache adapter instance](#dns-cache-adapters) for storing cached data.
 
 ###### request
 
@@ -784,6 +794,28 @@ got('sindresorhus.com', {cache: storageAdapter});
 
 View the [Keyv docs](https://github.com/lukechilds/keyv) for more information on how to use storage adapters.
 
+<a name="dns-cache-adapters"></a>
+## DNS cache [still in dev]
+
+Got automatically overrides `lookup` method to cache dns resolved results. DNS cache uses `dns.resolve4()` and `dns.resolve6()` instead of `dns.lookup()`. By default cached records are stored in `Map()` with respect to provider TTL. You can pass your own storage which implements `get(<String>key)`, `set(<String>key, <Object>value)`, `clear()` interface.
+Example:
+
+```
+const got = require('got');
+const Keyv = require('keyv');
+
+const keyv = new Keyv('redis://localhost:6379');
+
+(async () => {
+	await got('http://www.google.com/', {
+		dnsCache: {
+			storage: keyv
+		}
+	});
+})();
+```
+
+TODO: expiring records, add more basic info, add example with custom storage instance
 
 ## Proxies
 

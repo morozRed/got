@@ -49,11 +49,8 @@ module.exports = options => {
 						break;
 				}
 				_resolver(hostname, {ttl: true}, (err, results) => {
-					if (err) {
+					if (err || results.length === 0) {
 						return callback(err);
-					}
-					if (results.length === 0) {
-						return callback(null);
 					}
 					const records = results.map(result => {
 						return {
