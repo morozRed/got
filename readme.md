@@ -800,7 +800,7 @@ View the [Keyv docs](https://github.com/lukechilds/keyv) for more information on
 Got automatically overrides `lookup` method to cache dns resolved results. DNS cache uses `dns.resolve4()` and `dns.resolve6()` instead of `dns.lookup()`. By default cached records are stored in `Map()` with respect to provider TTL. You can pass your own storage which implements `get(<String>key)`, `set(<String>key, <Object>value)`, `clear()` interface.
 Example:
 
-```
+```js
 const got = require('got');
 const Keyv = require('keyv');
 
