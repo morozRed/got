@@ -1,7 +1,3 @@
-/**
- * TODO: deal with expired ttl`s and capacity
- */
-
 module.exports = () => {
 	const _records = new Map();
 
@@ -13,7 +9,10 @@ module.exports = () => {
 	};
 
 	this.set = (key, record) => {
-		_records.set(key, record);
+		return new Promise(resolve => {
+			_records.set(key, record);
+			resolve();
+		});
 	};
 
 	this.clear = () => {

@@ -43,6 +43,7 @@
 		"lowercase-keys": "^1.0.1",
 		"mimic-response": "^1.0.1",
 		"p-cancelable": "^1.0.0",
+		"rr": "^0.1.0",
 		"to-readable-stream": "^1.0.0",
 		"url-parse-lax": "^3.0.0"
 	},
